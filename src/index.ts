@@ -3,14 +3,70 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import fetch from "node-fetch"; // Ensure you install node-fetch if not already installed
 
-// Define the schema for the config object using Zod
+// Extend the schema for the config object using Zod
 const ConfigSchema = z.object({
   mediaWikiAPIBase: z.string().url().optional(), // Optional URL string
   wikiBaseAPIBase: z.string().url().optional(), // Optional URL string
+  botUsername: z.string().optional(), // Bot username
+  botPassword: z.string().optional(), // Bot password
 });
 
 // Infer the TypeScript type from the schema
 type Config = z.infer<typeof ConfigSchema>;
+
+// Variable to store the session token
+let sessionCookie: string | null = null;
+
+// Function to log in as a bot
+async function loginAsBot(username: string, password: string) {
+  const loginUrl = `${mediaWikiAPIBase}?action=login&format=json`;
+
+  // Step 1: Get login token
+  const tokenResponse = await fetch(`${mediaWikiAPIBase}?action=query&meta=tokens&type=login&format=json`, {
+    headers: {
+      "User-Agent": USER_AGENT,
+    },
+  });
+
+  if (!tokenResponse.ok) {
+    throw new Error(`Failed to fetch login token: ${tokenResponse.statusText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  const loginToken = tokenData.query?.tokens?.logintoken;
+
+  if (!loginToken) {
+    throw new Error("Failed to retrieve login token.");
+  }
+
+  // Step 2: Log in with the token
+  const loginResponse = await fetch(loginUrl, {
+    method: "POST",
+    headers: {
+      "User-Agent": USER_AGENT,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      lgname: username,
+      lgpassword: password,
+      lgtoken: loginToken,
+    }),
+  });
+
+  if (!loginResponse.ok) {
+    throw new Error(`Failed to log in: ${loginResponse.statusText}`);
+  }
+
+  const loginResult = await loginResponse.json();
+
+  if (loginResult.login?.result !== "Success") {
+    throw new Error(`Login failed: ${loginResult.login?.reason || "Unknown reason"}`);
+  }
+
+  // Store the session cookie
+  sessionCookie = loginResponse.headers.get("set-cookie");
+  console.log("Bot logged in successfully.");
+}
 
 /*
 Default API base URL
@@ -19,6 +75,8 @@ Can be overridden by the clien with a configuration like this:
 server.configure({
   mediaWikiAPIBase: "https://my.mediawiki.instance/api.php",
   wikiBaseAPIBase: "https://my.wikibase.instance/api.php",
+  botUsername: "MyBotUsername",
+  botPassword: "MyBotPassword",
 });
 */
 let mediaWikiAPIBase = "https://en.wikipedia.org/w/api.php"; // Default to English wikipedia
@@ -49,7 +107,7 @@ const server = new McpServer({
           )}`;
 
           // Fetch the page content
-          const response = await fetch(url, {
+          const response = await authenticatedFetch(url, {
             headers: {
               "User-Agent": USER_AGENT,
             },
@@ -92,7 +150,7 @@ const server = new McpServer({
           const url = `${mediaWikiAPIBase}?action=edit&format=json`;
 
           // Fetch an edit token (required for editing)
-          const tokenResponse = await fetch(
+          const tokenResponse = await authenticatedFetch(
             `${mediaWikiAPIBase}?action=query&meta=tokens&format=json`,
             {
               headers: {
@@ -113,7 +171,7 @@ const server = new McpServer({
           }
 
           // Perform the edit
-          const editResponse = await fetch(url, {
+          const editResponse = await authenticatedFetch(url, {
             method: "POST",
             headers: {
               "User-Agent": USER_AGENT,
@@ -138,7 +196,7 @@ const server = new McpServer({
       },
     },
   },
-  onConfigure: (config: unknown) => {
+  onConfigure: async (config: unknown) => {
     // Validate the config object using Zod
     const parsedConfig = ConfigSchema.parse(config);
 
@@ -149,5 +207,19 @@ const server = new McpServer({
     if (parsedConfig.wikiBaseAPIBase) {
       wikiBaseAPIBase = parsedConfig.wikiBaseAPIBase;
     }
+
+    // Log in as a bot if credentials are provided
+    if (parsedConfig.botUsername && parsedConfig.botPassword) {
+      await loginAsBot(parsedConfig.botUsername, parsedConfig.botPassword);
+    }
   },
 });
+
+// Update fetch calls to include the session cookie if available
+async function authenticatedFetch(url: string, options: RequestInit = {}) {
+  const headers = options.headers || {};
+  if (sessionCookie) {
+    headers["Cookie"] = sessionCookie;
+  }
+  return fetch(url, { ...options, headers });
+}
