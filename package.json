@@ -1,0 +1,33 @@
+{
+  "name": "mediawikiadapter",
+  "version": "1.0.0",
+  "description": "A custom Model Context Protocol adapter for MediaWiki and WikiBase API",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "mediawikiadapter": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "files": [
+    "build"
+  ],
+  "keywords": [
+    "mcp",
+    "mediawiki",
+    "wikibase",
+    "adapter"
+  ],
+  "author": "Luca Mauri",
+  "license": "LGPL-3.0-or-later",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.3"
+  }
+}
