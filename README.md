@@ -1,6 +1,6 @@
 # MediaWikiAdapter
 
-[![smithery badge](https://smithery.ai/server/@lucamauri/mediawiki-mcp-adapter)](https://smithery.ai/server/@lucamauri/mediawiki-mcp-adapter)
+![smithery badge](https://smithery.ai/badge/@lucamauri/mediawiki-mcp-adapter)
 
 A custom **Model Context Protocol (MCP)** adapter for interacting with MediaWiki and WikiBase APIs. This adapter allows you to fetch and edit MediaWiki pages programmatically using the MCP framework.
 
