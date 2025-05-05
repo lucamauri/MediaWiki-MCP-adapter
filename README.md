@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/lucamauri-mediawiki-mcp-adapter-badge.png)](https://mseep.ai/app/lucamauri-mediawiki-mcp-adapter)
+
 # MediaWikiAdapter
 
 [![smithery badge](https://smithery.ai/server/@lucamauri/mediawiki-mcp-adapter)](https://smithery.ai/server/@lucamauri/mediawiki-mcp-adapter)
